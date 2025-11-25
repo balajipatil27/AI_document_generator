@@ -32,7 +32,7 @@ This AI-powered platform streamlines the document creation process by allowing u
 - Export polished documents in professional formats
 
 The application provides an intuitive workflow:
-![alt text](image.png)
+![alt text](SS/Screenshot%202025-11-26%20010652.png)
 
 ## Features
 
@@ -96,7 +96,7 @@ The application provides an intuitive workflow:
 - Gemini API Integration
 - Document Generation Layer]
 
-![Architecture Diagram](ss/Screenshot%202025-11-26%20012453.png)
+![Architecture Diagram](SS/Screenshot%202025-11-26%20012453.png)
 
 ### Application Flow
 
@@ -253,7 +253,7 @@ uvicorn app:app --reload --host 0.0.0.0 --port 5000
 
 [PLACEHOLDER: Screenshot of login page]
 
-![Login Page](ss/login.png)
+![Login Page](SS/login.png)
 
 - Enter your credentials
 - Click "Login" to access the dashboard
@@ -263,7 +263,7 @@ uvicorn app:app --reload --host 0.0.0.0 --port 5000
 
 [PLACEHOLDER: Screenshot of dashboard]
 
-![Dashboard](ss/dashboard.png)
+![Dashboard](SS/dashboard.png)
 
 The dashboard displays:
 
@@ -275,7 +275,7 @@ The dashboard displays:
 
 #### Step 1: Choose Document Type
 
-![Document Type Selection](ss/documenttype.png)
+![Document Type Selection](SS/documenttype.png)
 
 Select either:
 
@@ -286,7 +286,7 @@ Select either:
 
 [PLACEHOLDER: Screenshot of topic input]
 
-![Create New Project](ss/project_create.png)
+![Create New Project](SS/project_create.png)
 
 Enter the main topic or prompt for your document, such as:
 
@@ -300,7 +300,7 @@ Enter the main topic or prompt for your document, such as:
 
 [PLACEHOLDER: Screenshot of Word outline configuration]
 
-![Create Project](ss/main_topic.png)
+![Create Project](SS/main_topic.png)
 
 - Add section headers
 - Reorder sections via drag-and-drop
@@ -311,7 +311,7 @@ Enter the main topic or prompt for your document, such as:
 
 [PLACEHOLDER: Screenshot of PowerPoint slide configuration]
 
-![Document Structure](ss/sections.png)
+![Document Structure](SS/sections.png)
 
 - Specify number of slides
 - Define title for each slide
@@ -322,7 +322,7 @@ Enter the main topic or prompt for your document, such as:
 
 [PLACEHOLDER: Screenshot of content generation in progress]
 
-![Content Generation](ss/Screenshot%202025-11-26%20012453.png)
+![Content Generation](SS/Screenshot%202025-11-26%20012453.png)
 
 - Click "Generate Content" button
 - AI processes each section/slide sequentially
@@ -332,7 +332,7 @@ Enter the main topic or prompt for your document, such as:
 ### 6. Interactive Refinement
 
 Refinement Interface
-![Refinement Interface Before ](ss/refining.png)
+![Refinement Interface Before ](SS/refining.png)
 
 For each section/slide, you can:
 
@@ -359,7 +359,7 @@ For each section/slide, you can:
 
 [PLACEHOLDER: Screenshot of export options]
 
-![Export Options](ss/exportdoc.png)
+![Export Options](SS/exportdoc.png)
 
 - Review all refined content
 - Click "Export Document" button
