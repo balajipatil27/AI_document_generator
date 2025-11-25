@@ -8,7 +8,7 @@ import json
 import bcrypt
 import os
 
-GEMINI_API_KEY =os.environ.get("GEMINI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 app = Flask(__name__, 
             static_folder='static',
             template_folder='templates')
@@ -21,7 +21,6 @@ db.init_app(app)
 CORS(app, supports_credentials=True)
 
 # Gemini API configuration
-GEMINI_API_KEY 
 gemini_client = GeminiClient(GEMINI_API_KEY)
 
 # Password hashing functions
@@ -191,6 +190,33 @@ def get_project(project_id):
     
     return jsonify(project_dict)
 
+# ADD THIS DELETE ENDPOINT
+@app.route('/api/projects/<int:project_id>', methods=['DELETE'])
+def delete_project(project_id):
+    user_id = get_user_id_from_session()
+    if not user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    try:
+        # Delete related content and refinement history first
+        Content.query.filter_by(project_id=project_id).delete()
+        RefinementHistory.query.filter_by(project_id=project_id).delete()
+        
+        # Delete the project
+        db.session.delete(project)
+        db.session.commit()
+        
+        return jsonify({'message': 'Project deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting project: {e}")
+        return jsonify({'error': 'Failed to delete project'}), 500
+
 @app.route('/api/projects/<int:project_id>/generate', methods=['POST'])
 def generate_content(project_id):
     user_id = get_user_id_from_session()
@@ -348,10 +374,6 @@ with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
-    
-
-
-
     port = int(os.environ.get('PORT', 5000))
     print(f"Starting AI Document Generator on port {port}")
     print("Note: Using mock AI functions - no external API required")
