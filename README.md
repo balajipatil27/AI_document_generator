@@ -777,15 +777,7 @@ docker build -t ai-doc-platform .
 docker run -p 5000:5000 --env-file .env ai-doc-platform
 ```
 
-#### Deployment Platforms
 
-**Recommended platforms:**
-
-- **Railway**: Easy Python deployment
-- **Render**: Free tier available
-- **Heroku**: Simple deployment with add-ons
-- **AWS EC2**: Full control and scalability
-- **Google Cloud Run**: Serverless container deployment
 
 ### Environment Configuration
 
@@ -796,16 +788,6 @@ For production, ensure:
 - CORS properly configured
 - Rate limiting implemented
 - Database backups scheduled
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
 
 ### Code Style
 
@@ -825,25 +807,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - FastAPI framework
 - The open-source community
 
-## 📞 Support
-
-For issues, questions, or suggestions:
-
-- Open an issue on GitHub
-- Email: support@example.com
-- Documentation: [Wiki](https://github.com/yourusername/ai-document-platform/wiki)
-
-## 📊 Project Status
-
-Current Version: 1.0.0
-
-**Status**: ✅ Production Ready
-
-**Recent Updates**:
-
-- Initial release with core features
-- AI-powered content generation
-- Document export functionality
-- User authentication system
-
-**Built with ❤️ using FastAPI, Gemini AI, and modern web technologies**
