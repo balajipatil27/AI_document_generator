@@ -96,7 +96,7 @@ The application provides an intuitive workflow:
 - Gemini API Integration
 - Document Generation Layer]
 
-![Architecture Diagram](SS/Screenshot%202025-11-26%20012453.png)
+![Architecture Diagram](SS/databaseschema)
 
 ### Application Flow
 
@@ -747,7 +747,7 @@ pytest tests/test_auth.py
 ## 🚢 Deployment
 
 Render URL
-https://ai-document-generator-vhvm.onrender.com/editor?project_id=1
+https://ai-document-generator-vhvm.onrender.com/
 
 ### Local Deployment
 
