@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor - AI Document Authoring</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">AI Document Author</div>
+        <div class="nav-links">
+            <a href="/dashboard">Dashboard</a>
+            <button id="logout-btn">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="dashboard-header">
+            <h1 id="project-title">Document Editor</h1>
+            <div>
+                <button class="btn btn-secondary" onclick="generateContent()">Generate Content</button>
+                <button class="btn btn-primary" onclick="exportDocument()">Export Document</button>
+            </div>
+        </div>
+
+        <div id="message" class="alert hidden"></div>
+
+        <div class="editor-container">
+            <!-- Sidebar with sections -->
+            <div class="sidebar">
+                <h3>Document Structure</h3>
+                <div id="sections-list">
+                    <!-- Sections will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Main editor content -->
+            <div class="editor-content">
+                <div id="content-display">
+                    <p>Select a section from the sidebar to view and edit content.</p>
+                </div>
+                
+                <div id="refinement-tools" class="refinement-tools hidden">
+                    <h3>Refine Content</h3>
+                    <div class="form-group">
+                        <label for="refinement-prompt">Refinement Prompt:</label>
+                        <textarea id="refinement-prompt" placeholder="e.g., Make this more formal, Convert to bullet points, Shorten to 100 words..."></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="refineContent()">Refine Content</button>
+                    
+                    <div class="feedback-buttons">
+                        <button class="btn btn-secondary" onclick="giveFeedback('like')">👍 Like</button>
+                        <button class="btn btn-secondary" onclick="giveFeedback('dislike')">👎 Dislike</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentProject = null;
+        let currentSection = null;
+
+        // Get project ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectId = urlParams.get('project_id');
+
+        if (!projectId) {
+            window.location.href = '/dashboard';
+        }
+
+        // Check authentication and load project
+        fetch('/api/check-auth', {
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                window.location.href = '/login';
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.authenticated) {
+                loadProject(projectId);
+            } else {
+                window.location.href = '/login';
+            }
+        });
+
+        function loadProject(projectId) {
+            fetch(`/api/projects/${projectId}`, {
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(project => {
+                if (project.error) {
+                    showMessage(project.error, 'error');
+                    return;
+                }
+                
+                currentProject = project;
+                document.getElementById('project-title').textContent = project.title;
+                renderSections(project);
+            })
+            .catch(error => {
+                console.error('Error loading project:', error);
+                showMessage('Error loading project', 'error');
+            });
+        }
+
+        function renderSections(project) {
+            const sectionsList = document.getElementById('sections-list');
+            sectionsList.innerHTML = '';
+
+            project.outline.forEach(section => {
+                const sectionDiv = document.createElement('div');
+                sectionDiv.className = 'section-item';
+                sectionDiv.onclick = () => selectSection(section);
+                sectionDiv.innerHTML = `
+                    <strong>${section.title}</strong>
+                `;
+                sectionsList.appendChild(sectionDiv);
+            });
+        }
+
+        function selectSection(section) {
+            currentSection = section;
+            
+            // Update UI
+            document.querySelectorAll('.section-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // Show content
+            const content = currentProject.contents.find(c => c.section_id === section.id);
+            const contentDisplay = document.getElementById('content-display');
+            
+            if (content) {
+                contentDisplay.innerHTML = `
+                    <h3>${section.title}</h3>
+                    <div style="white-space: pre-wrap; line-height: 1.6; margin-top: 1rem;">${content.content_text}</div>
+                `;
+            } else {
+                contentDisplay.innerHTML = `
+                    <h3>${section.title}</h3>
+                    <p>No content generated yet. Click "Generate Content" to create content for this section.</p>
+                `;
+            }
+            
+            // Show refinement tools
+            document.getElementById('refinement-tools').classList.remove('hidden');
+        }
+
+        function generateContent() {
+            if (!currentProject) return;
+            
+            showMessage('Generating content... This may take a moment.', 'success');
+            
+            fetch(`/api/projects/${currentProject.id}/generate`, {
+                method: 'POST',
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    showMessage('Content generated successfully!', 'success');
+                    // Reload project to get new content
+                    loadProject(currentProject.id);
+                } else {
+                    showMessage(data.error || 'Failed to generate content', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error generating content:', error);
+                showMessage('Error generating content', 'error');
+            });
+        }
+
+        function refineContent() {
+            if (!currentProject || !currentSection) {
+                showMessage('Please select a section first', 'error');
+                return;
+            }
+            
+            const prompt = document.getElementById('refinement-prompt').value;
+            if (!prompt) {
+                showMessage('Please enter a refinement prompt', 'error');
+                return;
+            }
+            
+            showMessage('Refining content...', 'success');
+            
+            fetch(`/api/projects/${currentProject.id}/refine`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    section_id: currentSection.id,
+                    prompt: prompt
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.refined_content) {
+                    showMessage('Content refined successfully!', 'success');
+                    document.getElementById('refinement-prompt').value = '';
+                    // Reload project to get updated content
+                    loadProject(currentProject.id);
+                } else {
+                    showMessage(data.error || 'Failed to refine content', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error refining content:', error);
+                showMessage('Error refining content', 'error');
+            });
+        }
+
+        function giveFeedback(feedback) {
+            if (!currentProject || !currentSection) {
+                showMessage('Please select a section first', 'error');
+                return;
+            }
+            
+            showMessage(`Feedback recorded: ${feedback}`, 'success');
+            // In a real application, you would send this to the backend
+        }
+
+        function exportDocument() {
+            if (!currentProject) return;
+            
+            window.open(`/api/projects/${currentProject.id}/export`, '_blank');
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `alert alert-${type}`;
+            messageDiv.classList.remove('hidden');
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', function() {
+            fetch('/api/logout', {
+                method: 'POST',
+                credentials: 'include'
+            })
+            .then(() => {
+                window.location.href = '/';
+            });
+        });
+    </script>
+</body>
+</html>

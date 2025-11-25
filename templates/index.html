@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Document Authoring Platform</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div id="app">
+        <nav class="navbar">
+            <div class="nav-brand">AI Document Author</div>
+            <div class="nav-links">
+                <a href="/login" id="login-link">Login</a>
+                <a href="/register" id="register-link">Register</a>
+                <a href="/dashboard" id="dashboard-link" style="display:none;">Dashboard</a>
+                <button id="logout-btn" style="display:none;">Logout</button>
+            </div>
+        </nav>
+        
+        <main class="container">
+            <div class="hero">
+                <h1>AI-Powered Document Creation</h1>
+                <p>Create professional Word documents and PowerPoint presentations with AI assistance</p>
+                <div class="cta-buttons">
+                    <a href="/register" class="btn btn-primary">Get Started</a>
+                    <a href="/login" class="btn btn-secondary">Login</a>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Check if user is already logged in
+        fetch('/api/check-auth', {
+            credentials: 'include'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.authenticated) {
+                document.getElementById('login-link').style.display = 'none';
+                document.getElementById('register-link').style.display = 'none';
+                document.getElementById('dashboard-link').style.display = 'block';
+                document.getElementById('logout-btn').style.display = 'block';
+            }
+        });
+        
+        // Logout functionality
+        document.getElementById('logout-btn').addEventListener('click', function() {
+            fetch('/api/logout', {
+                method: 'POST',
+                credentials: 'include'
+            })
+            .then(() => {
+                window.location.href = '/';
+            });
+        });
+    </script>
+</body>
+</html>

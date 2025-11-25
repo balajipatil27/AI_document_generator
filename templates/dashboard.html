@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AI Document Authoring</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">AI Document Author</div>
+        <div class="nav-links">
+            <a href="/">🏠 Home</a>
+            <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+                🌙
+            </button>
+            <button id="logout-btn" class="btn btn-secondary">🚪 Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="dashboard-header">
+            <div>
+                <h1>📊 My Projects</h1>
+                <p>Manage and create your AI-generated documents</p>
+            </div>
+            <button class="btn btn-primary" onclick="showCreateProjectModal()">
+                <span>+</span> Create New Project
+            </button>
+        </div>
+
+        <div id="message" class="alert hidden"></div>
+
+        <div class="projects-grid" id="projects-grid">
+            <div class="empty-state">
+                <h3>No Projects Yet</h3>
+                <p>Create your first project to get started with AI-powered document generation.</p>
+                <button class="btn btn-primary" onclick="showCreateProjectModal()" style="margin-top: 1rem;">
+                    Create Your First Project
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div id="create-project-modal" class="modal hidden">
+        <div class="modal-content">
+            <button class="modal-close" onclick="hideCreateProjectModal()">×</button>
+            <h2>Create New Project</h2>
+            <form id="create-project-form">
+                <div class="form-group">
+                    <label for="project-title">📝 Project Title:</label>
+                    <input type="text" id="project-title" required placeholder="Enter project title">
+                </div>
+                <div class="form-group">
+                    <label for="document-type">📄 Document Type:</label>
+                    <select id="document-type" required>
+                        <option value="">Select document type</option>
+                        <option value="docx">📝 Word Document</option>
+                        <option value="pptx">📊 Presentation</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="topic">🎯 Main Topic:</label>
+                    <textarea id="topic" required placeholder="Briefly describe what you want to create..."></textarea>
+                </div>
+                <div id="outline-section">
+                    <h3>📑 Document Structure</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Add sections or let AI suggest them</p>
+                    <div id="outline-items"></div>
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-secondary" onclick="addOutlineItem()">
+                            ➕ Add Section
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="generateAISuggestions()">
+                            🪄 AI Suggest
+                        </button>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideCreateProjectModal()">❌ Cancel</button>
+                    <button type="submit" class="btn btn-primary">✅ Create Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal hidden">
+        <div class="modal-content">
+            <button class="modal-close" onclick="hideDeleteModal()">×</button>
+            <h2>🗑️ Delete Project</h2>
+            <p>Are you sure you want to delete "<span id="delete-project-title"></span>"?</p>
+            <p style="color: var(--warning-color); font-size: 0.9rem; margin-top: 0.5rem;">
+                This action cannot be undone.
+            </p>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="hideDeleteModal()">❌ Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">🗑️ Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentProjectToDelete = null;
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        updateThemeIcon(currentTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+
+        function updateThemeIcon(theme) {
+            themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
+        }
+
+        // Check authentication
+        fetch('/api/check-auth', {
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                window.location.href = '/login';
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.authenticated) {
+                currentUser = data;
+                loadProjects();
+            } else {
+                window.location.href = '/login';
+            }
+        });
+
+        function loadProjects() {
+            fetch('/api/projects', {
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(projects => {
+                const projectsGrid = document.getElementById('projects-grid');
+                projectsGrid.innerHTML = '';
+
+                if (projects.error) {
+                    projectsGrid.innerHTML = '<div class="alert alert-error">Error loading projects</div>';
+                    return;
+                }
+
+                if (projects.length === 0) {
+                    projectsGrid.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No Projects Yet</h3>
+                            <p>Create your first project to get started with AI-powered document generation.</p>
+                            <button class="btn btn-primary" onclick="showCreateProjectModal()" style="margin-top: 1rem;">
+                                Create Your First Project
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                projects.forEach(project => {
+                    const projectCard = document.createElement('div');
+                    projectCard.className = 'project-card live-element';
+                    projectCard.onclick = () => openProject(project.id);
+                    
+                    const docTypeIcon = project.document_type === 'docx' ? '📄' : '📊';
+                    const docTypeText = project.document_type === 'docx' ? 'Word Document' : 'Presentation';
+                    
+                    projectCard.innerHTML = `
+                        <h3>${docTypeIcon} ${project.title}</h3>
+                        <p><strong>Type:</strong> ${docTypeText}</p>
+                        <p><strong>Topic:</strong> ${project.topic}</p>
+                        <p><strong>Sections:</strong> ${project.outline.length}</p>
+                        <p><strong>Created:</strong> ${new Date(project.created_at).toLocaleDateString()}</p>
+                        <div class="project-actions">
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); openProject(${project.id})">
+                                📂 Open
+                            </button>
+                            <button class="btn btn-danger" onclick="event.stopPropagation(); showDeleteModal(${project.id}, '${project.title.replace(/'/g, "\\'")}')">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    `;
+                    
+                    projectsGrid.appendChild(projectCard);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading projects:', error);
+                document.getElementById('projects-grid').innerHTML = '<div class="alert alert-error">Error loading projects</div>';
+            });
+        }
+
+        function showDeleteModal(projectId, projectTitle) {
+            currentProjectToDelete = projectId;
+            document.getElementById('delete-project-title').textContent = projectTitle;
+            const modal = document.getElementById('delete-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.add('show'), 10);
+        }
+
+        function hideDeleteModal() {
+            const modal = document.getElementById('delete-modal');
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                currentProjectToDelete = null;
+            }, 300);
+        }
+
+        function confirmDelete() {
+            if (!currentProjectToDelete) return;
+
+            fetch(`/api/projects/${currentProjectToDelete}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    showMessage('Project deleted successfully!', 'success');
+                    hideDeleteModal();
+                    loadProjects();
+                } else {
+                    showMessage(data.error || 'Failed to delete project', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting project:', error);
+                showMessage('Error deleting project', 'error');
+            });
+        }
+
+        function showCreateProjectModal() {
+            const modal = document.getElementById('create-project-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.add('show'), 10);
+            resetOutline();
+        }
+
+        function hideCreateProjectModal() {
+            const modal = document.getElementById('create-project-modal');
+            modal.classList.remove('show');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function resetOutline() {
+            const outlineItems = document.getElementById('outline-items');
+            outlineItems.innerHTML = '';
+            addOutlineItem();
+        }
+
+        function addOutlineItem() {
+            const outlineItems = document.getElementById('outline-items');
+            const docType = document.getElementById('document-type').value;
+            const label = docType === 'docx' ? 'Section' : 'Slide';
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'outline-item';
+            itemDiv.innerHTML = `
+                <input type="text" placeholder="${label} title..." class="outline-title">
+                <button type="button" class="btn btn-secondary" onclick="this.parentElement.remove()" style="padding: 0.5rem;">
+                    Remove
+                </button>
+            `;
+            outlineItems.appendChild(itemDiv);
+        }
+
+        function generateAISuggestions() {
+            const topic = document.getElementById('topic').value;
+            const docType = document.getElementById('document-type').value;
+
+            if (!topic) {
+                showMessage('Please enter a topic first', 'error');
+                return;
+            }
+
+            if (!docType) {
+                showMessage('Please select a document type first', 'error');
+                return;
+            }
+
+            showMessage('Generating structure suggestions...', 'success');
+
+            fetch('/api/generate-outline', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ topic, document_type: docType })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.outline) {
+                    const outlineItems = document.getElementById('outline-items');
+                    outlineItems.innerHTML = '';
+                    
+                    data.outline.forEach((item, index) => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'outline-item';
+                        itemDiv.innerHTML = `
+                            <input type="text" value="${item.title}" class="outline-title">
+                            <button type="button" class="btn btn-secondary" onclick="this.parentElement.remove()" style="padding: 0.5rem;">
+                                Remove
+                            </button>
+                        `;
+                        outlineItems.appendChild(itemDiv);
+                    });
+                    showMessage('Structure generated successfully!', 'success');
+                } else {
+                    showMessage('Failed to generate structure suggestions', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error generating outline:', error);
+                showMessage('Error generating structure suggestions', 'error');
+            });
+        }
+
+        document.getElementById('create-project-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('project-title').value;
+            const documentType = document.getElementById('document-type').value;
+            const topic = document.getElementById('topic').value;
+            
+            const outlineItems = document.querySelectorAll('.outline-item');
+            const outline = Array.from(outlineItems).map((item, index) => ({
+                id: `${documentType === 'docx' ? 'section' : 'slide'}_${index}`,
+                title: item.querySelector('.outline-title').value
+            })).filter(item => item.title.trim() !== '');
+
+            if (outline.length === 0) {
+                showMessage('Please add at least one section/slide to the structure', 'error');
+                return;
+            }
+
+            fetch('/api/projects', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    title,
+                    document_type: documentType,
+                    topic,
+                    outline
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.project_id) {
+                    hideCreateProjectModal();
+                    loadProjects();
+                    showMessage('Project created successfully!', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = `/editor?project_id=${data.project_id}`;
+                    }, 1000);
+                } else {
+                    showMessage(data.error || 'Failed to create project', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating project:', error);
+                showMessage('Error creating project', 'error');
+            });
+        });
+
+        function openProject(projectId) {
+            window.location.href = `/editor?project_id=${projectId}`;
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `alert alert-${type}`;
+            messageDiv.classList.remove('hidden');
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 4000);
+        }
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', function() {
+            fetch('/api/logout', {
+                method: 'POST',
+                credentials: 'include'
+            })
+            .then(() => {
+                window.location.href = '/';
+            });
+        });
+
+        // Close modals when clicking outside
+        document.getElementById('create-project-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideCreateProjectModal();
+            }
+        });
+
+        document.getElementById('delete-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideDeleteModal();
+            }
+        });
+
+        // Close modals with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                hideCreateProjectModal();
+                hideDeleteModal();
+            }
+        });
+
+        // Initialize outline when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            resetOutline();
+        });
+    </script>
+</body>
+</html>
